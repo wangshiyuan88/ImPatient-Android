@@ -1,0 +1,37 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+    <style name="AppTheme.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+    <style name="ImPatientTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!--<item name="colorPrimaryDark">#cc0986ff</item>-->
+        <item name="colorPrimaryDark">#ff0c84e8</item>
+        <item name="colorPrimary">#ff0c84e8</item>
+        <item name="android:textColorPrimary">#fdfff2</item>
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:editTextColor">@android:color/background_dark</item>
+        <item name="android:textColor">@android:color/background_dark</item>
+        <item name="colorControlNormal">@android:color/background_dark</item>
+        <item name="colorControlActivated">#ff0043c5</item>
+        <item name="colorControlHighlight">#ffcb6345</item>
+    </style>
+    <style name="ImPatientTheme.Button" parent="@android:style/Widget.Button">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:background">
+            @drawable/button_selector
+        </item>
+        <item name="android:textColor">@color/button_text</item>
+        <item name="android:textSize">18sp</item>
+    </style>
+</resources>

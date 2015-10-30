@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+    <color name="text_color">#222222</color>
+    <color name="press">#2E4677</color>
+    <color name="focus">#304F8B</color>
+    <color name="button_background">#3B5998</color>
+    <color name="button_text">@android:color/white</color>
+
+</resources>

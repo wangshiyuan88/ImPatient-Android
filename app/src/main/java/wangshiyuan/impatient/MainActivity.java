@@ -18,10 +18,10 @@ import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ResultReceiver;
-import android.os.SystemClock;
 import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -30,10 +30,13 @@ import android.widget.Toast;
 
 import com.codetroopers.betterpickers.calendardatepicker.CalendarDatePickerDialogFragment;
 import com.codetroopers.betterpickers.radialtimepicker.RadialTimePickerDialogFragment;
+import com.parse.FindCallback;
 import com.parse.ParseException;
 import com.parse.ParseObject;
+import com.parse.ParseQuery;
 import com.parse.ParseUser;
 import com.parse.SaveCallback;
+import com.romainpiel.shimmer.ShimmerTextView;
 import com.yalantis.contextmenu.lib.ContextMenuDialogFragment;
 import com.yalantis.contextmenu.lib.MenuObject;
 import com.yalantis.contextmenu.lib.MenuParams;
@@ -49,6 +52,7 @@ import retrofit.GsonConverterFactory;
 import retrofit.Response;
 import retrofit.Retrofit;
 import wangshiyuan.impatient.object.ImPatientObject;
+import wangshiyuan.impatient.object.ImPatientResponse;
 import wangshiyuan.impatient.util.ImPatientRestfulService;
 import wangshiyuan.impatient.util.ImPatientUtil;
 
@@ -56,33 +60,53 @@ import wangshiyuan.impatient.util.ImPatientUtil;
 public class MainActivity extends AppCompatActivity implements OnMenuItemClickListener,
         android.app.FragmentManager.OnBackStackChangedListener, CalendarDatePickerDialogFragment.OnDateSetListener, RadialTimePickerDialogFragment.OnTimeSetListener {
 
+    public enum PatientStatus{
+        NO_APPOINTMENT, NOT_CHECK_IN, CHECK_IN, READY_FOR_TREATMENT, IN_TREATMENT, FINISH_TREATMENT, UNKNOWN
+    }
 
+    private final String TAG = "ImPatient.MainActivity";
     Retrofit retrofit;
     public static ImPatientRestfulService imPatientRestfulService;
     private FragmentManager fragmentManager;
     private ContextMenuDialogFragment mMenuDialogFragment;
     private ParseObject appointment_to_schedule;
-
+    private int alarmControlCode = 0;
+    private final int timeCheckerFreq = 60 * 1000;
 
     private final static int scheduleApp = 1;
     private final static int checkIn = 2;
-    private final static int delay = 4;
-    private final static int logout = 7;
+    private final static int delay = 3;
+    private final static int readyForTreatment = 4;
+    private final static int logout = 5;
     private static final String FRAG_TAG_DATE_PICKER = "fragment_date_picker_name";
     private static final String FRAG_TAG_TIME_PICKER = "fragment_time_picker_name";
     private boolean mCheckIning = false;
+    private PatientStatus status = PatientStatus.UNKNOWN;
+
+    public final static int RESULT_RECEIVER_CHECK_WAITING_TIME_CODE = 1;
+    public final static int RESULT_RECEIVER_CHECK_IN_READY_FOR_TREATEMENT_CODE = 2;
+    public final static int RESULT_RECEIVER_CHECK_IN_TREATMENT_CODE = 3;
+    public final static int RESULT_RECEIVER_CHECK_FINISH_TREATEMNT_CODE = 4;
+
     /**
      * A handler object, used for deferring UI operations.
      */
     private Handler mHandler = new Handler();
 
-    private boolean ifCheckIn = false;
-
+    public static final String KEY_RESULT_RECEIVER = "0";
+    public static final String KEY_STATUS = "1";
     private final long oneMin = 60*1000;
     private TimeChecker timeChecker;
 
     private ResultReceiver timeCheckerResultReceiver;
 
+    public static final String APP_STATE_NOT_START = "nostart";
+    public static final String APP_STATE_CHECK_IN = "checkin";
+    public static final String APP_STAET_IN_TRETMENT = "intreatment";
+    public static final String APP_STAET_READY_FOR_TRETMENT = "readyfortreatment";
+    public static final String APP_STATE_FINISH = "finish";
+
+    public static final String APP_STATE_KEY = "state";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -101,6 +125,42 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
                 .build();
         imPatientRestfulService = retrofit.create(ImPatientRestfulService.class);
         getFragmentManager().addOnBackStackChangedListener(this);
+
+        timeCheckerResultReceiver = new ResultReceiver(mHandler){
+            @Override
+            protected void onReceiveResult(int resultCode, Bundle resultData) {
+                if(resultCode==MainActivity.RESULT_RECEIVER_CHECK_WAITING_TIME_CODE){
+                    final String msg = resultData.getString("msg");
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if(msg!=null) {
+                                if(msg.equals("00:00")){
+                                    setStatus(PatientStatus.READY_FOR_TREATMENT);
+                                } else
+                                    ((ShimmerTextView) findViewById(R.id.status)).setText("Waiting Time:\n" + msg);
+                            }
+                        }
+                    });
+                }else if(resultCode==MainActivity.RESULT_RECEIVER_CHECK_IN_TREATMENT_CODE){
+                    MainActivity.this.setStatus(PatientStatus.IN_TREATMENT);
+                    Log.d(TAG, "In Treatment Now...");
+                }else if(resultCode==MainActivity.RESULT_RECEIVER_CHECK_IN_READY_FOR_TREATEMENT_CODE){
+                    MainActivity.this.setStatus(PatientStatus.READY_FOR_TREATMENT);
+                    Log.d(TAG, "Ready for Treatment Now...");
+                }else if(resultCode==MainActivity.RESULT_RECEIVER_CHECK_FINISH_TREATEMNT_CODE){
+                    MainActivity.this.setStatus(PatientStatus.FINISH_TREATMENT);
+                    Log.d(TAG, "Finish Treatment Now...");
+                }
+            }
+        };
+    }
+
+    @Override
+    protected void onStart(){
+        super.onStart();
+        findPatientStatus();
+
     }
 
     private void initMainMenuFragment() {
@@ -132,11 +192,12 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
                 BitmapFactory.decodeResource(getResources(), R.drawable.icon_therapy));
         readyForTreatment.setDrawable(bd);
 
-        MenuObject cancelAppointment = new MenuObject("Cancel appointment");
-        cancelAppointment.setResource(R.drawable.icon_cancel_appointment);
-
-        MenuObject remindMe = new MenuObject("Remind me");
-        remindMe.setResource(R.drawable.icon_remainder);
+        // Better to have these two features, may be implement in the furture.
+//        MenuObject cancelAppointment = new MenuObject("Cancel appointment");
+//        cancelAppointment.setResource(R.drawable.icon_cancel_appointment);
+//
+//        MenuObject remindMe = new MenuObject("Remind me");
+//        remindMe.setResource(R.drawable.icon_remainder);
 
         MenuObject logout = new MenuObject("Logout");
         BitmapDrawable logout_icon = new BitmapDrawable(getResources(),
@@ -146,10 +207,10 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
         menuObjects.add(close);
         menuObjects.add(schduleAppointment);
         menuObjects.add(checkIn);
-        menuObjects.add(remindMe);
+        //menuObjects.add(remindMe);
         menuObjects.add(delay);
         menuObjects.add(readyForTreatment);
-        menuObjects.add(cancelAppointment);
+        //menuObjects.add(cancelAppointment);
         menuObjects.add(logout);
 
 
@@ -207,13 +268,16 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
     public void onMenuItemClick(View clickedView, int position) {
         switch (position) {
             case checkIn:{
-                checkIn();
+                if(status==PatientStatus.NOT_CHECK_IN)
+                    checkIn();
+                else if(status==PatientStatus.CHECK_IN)
+                    startTimeChecker();
                 break;
             }
             case scheduleApp:{
                 appointment_to_schedule = new ParseObject(ImPatientObject.appointment_name);
                 appointment_to_schedule.put("patient", ParseUser.getCurrentUser().getObjectId());
-                appointment_to_schedule.put("checkin", false);
+                appointment_to_schedule.put("state", MainActivity.APP_STATE_NOT_START);
                 scheduleAppointment();
                 break;
             }
@@ -221,14 +285,36 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
                 delay();
                 break;
             }
+            case readyForTreatment:{
+                readyForTreatment();
+                break;
+            }
             case logout : {
-                ParseUser.logOutInBackground();
+                stopTimeChecker();
+                ParseUser.logOut();
                 Intent logoutIntent = new Intent(this, ImPatientGateKeeperActivity.class);
                 startActivity(logoutIntent);
                 break;
             }
         }
     }
+
+    private void readyForTreatment() {
+        Call<ImPatientResponse> call = imPatientRestfulService.treatment(ParseUser.getCurrentUser().getObjectId());
+        call.enqueue(new Callback<ImPatientResponse>() {
+            @Override
+            public void onResponse(Response<ImPatientResponse> response, Retrofit retrofit) {
+                if(response.body().getStatus())
+                    MainActivity.this.setStatus(PatientStatus.IN_TREATMENT);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+
+            }
+        });
+    }
+
     @Override
     public void onBackStackChanged() {
 
@@ -303,7 +389,6 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
 
     @Override
     public void onTimeSet(RadialTimePickerDialogFragment dialog, int hourOfDay, int minute) {
-        //Todo: Save the time
         appointment_to_schedule.put("timestamp", hourOfDay * 60 + minute);
         appointment_to_schedule.put("hour", hourOfDay-1);
         appointment_to_schedule.put("minute", minute);
@@ -336,6 +421,7 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
                             String text = "Your appointment at "+ ImPatientUtil.getTimeString(appointment_to_schedule)+ " is not scheduled successfully, " +
                                     "please come back and schduel later";
                             pushNotification(getString(R.string.schedule_appointment_fail_title), text, R.drawable.icon_fail);
+                            setStatus(PatientStatus.NOT_CHECK_IN);
                         }
                         appointment_to_schedule = null;
                     }
@@ -379,11 +465,13 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
             @Override
             public void onResponse(Response<String> response, Retrofit retrofit) {
                 int statusCode = response.code();
-                if(statusCode==200){
+                if (statusCode == 200) {
                     String msg = response.body();
                     ImPatientUtil.makeToast(MainActivity.this, msg, Toast.LENGTH_LONG);
+                    findPatientStatus();
                 }
             }
+
             @Override
             public void onFailure(Throwable t) {
                 t.printStackTrace();
@@ -392,24 +480,14 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
         });
     }
 
-    public void setCheckIn(boolean ifCheckIn){
-        this.ifCheckIn = ifCheckIn;
-    }
 
     private void startTimeChecker(){
-        timeCheckerResultReceiver = new ResultReceiver(mHandler){
-            @Override
-            protected void onReceiveResult(int resultCode, Bundle resultData) {
-                //Todo: result parsing
-            }
-        };
-
-        timeChecker = new TimeChecker();
+        if(timeChecker==null)
+            timeChecker = new TimeChecker();
         registerReceiver(timeChecker, new IntentFilter(("wangshiyuan.impatient.timechecker")));
-
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, new Intent("wangshiyuan.impatient.timechecker"), PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, alarmControlCode, new Intent("wangshiyuan.impatient.timechecker"), PendingIntent.FLAG_UPDATE_CURRENT);
         AlarmManager alarmManager = (AlarmManager)(this.getSystemService(Context.ALARM_SERVICE));
-        alarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + oneMin, oneMin, pendingIntent);
+        alarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME, 0, timeCheckerFreq, pendingIntent);
     }
 
     public class TimeChecker extends BroadcastReceiver{
@@ -417,8 +495,88 @@ public class MainActivity extends AppCompatActivity implements OnMenuItemClickLi
         @Override
         public void onReceive(Context context, Intent intent) {
             intent = new Intent(context, TimeCheckService.class);
-            intent.putExtra(TimeCheckService.KEY_RESULT_RECEIVER, timeCheckerResultReceiver);
-            context.startService(new Intent(context, TimeCheckService.class));
+            intent.putExtra(KEY_RESULT_RECEIVER, timeCheckerResultReceiver);
+            intent.putExtra(KEY_STATUS, ((MainActivity) context).getStatus().toString());
+            context.startService(intent);
         }
     }
+
+    public void stopTimeChecker(){
+        timeChecker = null;
+        PendingIntent senderstop = PendingIntent.getBroadcast(this,
+                alarmControlCode, new Intent("wangshiyuan.impatient.timechecker"), PendingIntent.FLAG_UPDATE_CURRENT);
+        AlarmManager alarmManagerstop = (AlarmManager) getSystemService(ALARM_SERVICE);
+        alarmManagerstop.cancel(senderstop);
+    }
+
+    public void setStatus(PatientStatus status){
+        this.status = status;
+        nextAction();
+    }
+
+
+    private void nextAction() {
+        switch (status){
+            case NO_APPOINTMENT:
+                ImPatientUtil.displayNextAppointment(((ShimmerTextView) findViewById(R.id.status)));
+                break;
+            case NOT_CHECK_IN:
+                ImPatientUtil.displayNextAppointment(((ShimmerTextView) findViewById(R.id.status)));
+                break;
+            case CHECK_IN:{
+                startTimeChecker();
+                break;
+            }
+            case READY_FOR_TREATMENT: {
+                startTimeChecker();
+                ((ShimmerTextView) findViewById(R.id.status)).setText("Your turn for Treatment.\nPlease press ready for treatment in menu");
+                break;
+            }
+            case IN_TREATMENT: {
+                startTimeChecker();
+                ((ShimmerTextView) findViewById(R.id.status)).setText("In treatment now...");
+                break;
+            }
+            case FINISH_TREATMENT: {
+                pushNotification("Treatment Done", "You have finished your treatment today", R.drawable.icon_confirm);
+                stopTimeChecker();
+                ImPatientUtil.displayNextAppointment(((ShimmerTextView) findViewById(R.id.status)), MainActivity.APP_STATE_NOT_START);
+                break;
+            }
+            case UNKNOWN: {
+                findPatientStatus();
+                break;
+            }
+        }
+    }
+
+    public void findPatientStatus(){
+        ParseQuery<ParseObject> query = ParseQuery.getQuery(ImPatientObject.appointment_name);
+        query.findInBackground(new FindCallback<ParseObject>() {
+            public void done(List<ParseObject> objects, ParseException e) {
+                final ParseObject nextAppointment = ImPatientUtil.getNextAppointment(objects, e, null);
+                if(nextAppointment==null)
+                    setStatus(PatientStatus.NO_APPOINTMENT);
+                else{
+                    String state = nextAppointment.getString(MainActivity.APP_STATE_KEY);
+                    if(state.equals(APP_STATE_NOT_START)){
+                        setStatus(PatientStatus.NOT_CHECK_IN);
+                    }else if(state.equals(APP_STATE_CHECK_IN)){
+                        setStatus(PatientStatus.CHECK_IN);
+                    }else if(state.equals(APP_STAET_READY_FOR_TRETMENT)){
+                        setStatus(PatientStatus.READY_FOR_TREATMENT);
+                    }else if(state.equals(APP_STAET_IN_TRETMENT)){
+                        setStatus(PatientStatus.IN_TREATMENT);
+                    }else if(state.equals(APP_STATE_FINISH)){
+                        setStatus(PatientStatus.FINISH_TREATMENT);
+                    }
+                }
+            }
+        });
+    }
+
+    public PatientStatus getStatus(){
+        return status;
+    }
 }
+

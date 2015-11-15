@@ -1,1 +1,1 @@
-include ':app', ':ParseLoginUI', ':retrofit-2.0.0-beta1', ':lib', ':floatlabeledittext'
+include ':app', ':ParseLoginUI', ':lib'

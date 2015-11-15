@@ -32,7 +32,6 @@
         <activity android:name=".ImPatientGateKeeperActivity" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -45,6 +44,7 @@
             android:value="@string/parse_client_key" />
 
         <activity android:name=".MainActivity" />
+        <activity android:name=".ImPatientAdminActivity" />
 
         <service
             android:name=".TimeCheckService"

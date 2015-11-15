@@ -190,7 +190,6 @@ public class ParseSignupFragment extends ParseLoginFragmentBase implements OnCli
       }
 
       loadingStart();
-      //TODO: Rewrite this part to use Spring framework, my own server
       user.signUpInBackground(new SignUpCallback() {
 
         @Override

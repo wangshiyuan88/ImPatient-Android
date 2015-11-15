@@ -91,7 +91,10 @@ public class PatientCheckInFragment extends Fragment {
                 if(currentAppointment==null){
                     Context context = getActivity().getApplicationContext();
                     ImPatientUtil.makeToast(context, "Appointment Information is not ready yet.", Toast.LENGTH_LONG);
-                }else if((Boolean)currentAppointment.get("checkin")) {
+                    parentActivity.setStatus(MainActivity.PatientStatus.NO_APPOINTMENT);
+                    parentActivity.quitCheckIn();
+                }else if(((String)currentAppointment.get("state")).equals(MainActivity.APP_STATE_CHECK_IN)) {
+                    parentActivity.setStatus(MainActivity.PatientStatus.CHECK_IN);
                     ImPatientUtil.makeToast(getActivity().getApplicationContext(), "Appoinment already got checked in.", Toast.LENGTH_LONG);
                     parentActivity.quitCheckIn();
                 }else{
@@ -127,16 +130,15 @@ public class PatientCheckInFragment extends Fragment {
                         @Override
                         public void onResponse(Response<String> response, Retrofit retrofit) {
                             int statusCode = response.code();
-
                             String msg = response.body();
                             if (statusCode == 200) {
-                                currentAppointment.put("checkin", true);
-                                currentAppointment.saveInBackground();
+//                                currentAppointment.put("state", MainActivity.APP_STATE_CHECK_IN);
+//                                currentAppointment.saveInBackground();
                                 if (Looper.myLooper() == null) {
                                     Looper.prepare();
                                 }
                                 ImPatientUtil.makeToast(parentActivity, msg, Toast.LENGTH_LONG);
-                                parentActivity.setCheckIn(false);
+                                parentActivity.setStatus(MainActivity.PatientStatus.CHECK_IN);
                             }
                         }
 

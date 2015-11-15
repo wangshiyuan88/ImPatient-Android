@@ -7,6 +7,7 @@ import retrofit.http.Body;
 import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.Path;
+import wangshiyuan.impatient.object.ImPatientResponse;
 
 /**
  * Created by wangshiyuan on 10/20/15.
@@ -23,11 +24,10 @@ public interface ImPatientRestfulService {
     Call<String> checkStatus(@Path("id") String userId);
 
     @GET("patient/treatment/{id}")
-    Boolean treatment(@Path("id") String userId);
+    Call<ImPatientResponse> treatment(@Path("id") String userId);
 
     @GET("patient/cancelAppointment/{id}")
     Boolean cancelAppointment(@Path("id") String userId);
 
-    @GET("patient/")
-    Call<String> test();
+
 }

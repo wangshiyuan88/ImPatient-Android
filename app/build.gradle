@@ -29,7 +29,8 @@ dependencies {
     // Module dependency on ParseLoginUI library sources
     compile project(':ParseLoginUI')
     compile project(':lib')
-    compile project(':floatlabeledittext')
+    //compile project(':floatlabeledittext')
     compile 'com.github.dmytrodanylyk.circular-progress-button:library:1.1.3'
+    compile 'com.android.support:recyclerview-v7:+'
 
 }

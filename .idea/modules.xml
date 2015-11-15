@@ -5,9 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/ImPatient.iml" filepath="$PROJECT_DIR$/ImPatient.iml" />
       <module fileurl="file://$PROJECT_DIR$/ParseLoginUI/ParseLoginUI.iml" filepath="$PROJECT_DIR$/ParseLoginUI/ParseLoginUI.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/floatlabeledittext/floatlabeledittext.iml" filepath="$PROJECT_DIR$/floatlabeledittext/floatlabeledittext.iml" />
       <module fileurl="file://$PROJECT_DIR$/lib/lib.iml" filepath="$PROJECT_DIR$/lib/lib.iml" />
-      <module fileurl="file://$PROJECT_DIR$/retrofit-2.0.0-beta1/retrofit-2.0.0-beta1.iml" filepath="$PROJECT_DIR$/retrofit-2.0.0-beta1/retrofit-2.0.0-beta1.iml" />
     </modules>
   </component>
 </project>

@@ -35,12 +35,16 @@ public class ImPatientTimeCheckFragment extends Fragment {
         refresh.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ImPatientUtil.displayNextAppointment(tv);
+                ((MainActivity)getActivity()).findPatientStatus();
             }
         });
         tv = (ShimmerTextView) getView().findViewById(R.id.status);
         shimmer = new Shimmer();
         shimmer.start(tv);
+    }
+
+    public void displayNextAppointment(){
+        ImPatientUtil.displayNextAppointment(tv);
     }
 
     @Override

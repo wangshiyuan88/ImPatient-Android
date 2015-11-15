@@ -14,6 +14,7 @@ import com.parse.ParseUser;
 import java.util.Calendar;
 import java.util.List;
 
+import wangshiyuan.impatient.MainActivity;
 import wangshiyuan.impatient.object.ImPatientObject;
 
 /**
@@ -21,15 +22,19 @@ import wangshiyuan.impatient.object.ImPatientObject;
  */
 public class ImPatientUtil {
     private static final String TAG = ImPatientUtil.class.getSimpleName();
-    public static ParseObject getNextAppointment(List<ParseObject> objects, ParseException e){
+    public static ParseObject getNextAppointment(List<ParseObject> objects, ParseException e, String state){
         ParseObject nextApp = null;
+        if(ParseUser.getCurrentUser()==null)
+            return null;
         if (e == null) {
-            for(ParseObject app : objects){
-                if(app.get("patient").equals(ParseUser.getCurrentUser().getObjectId())&&(((String)app.get("date")).compareTo(getCurrentDateString()))>=0){
-                    if(nextApp==null)
-                        nextApp = app;
-                    else{
-                        nextApp = (getTimeCompareString(app).compareTo(getTimeCompareString(nextApp)))<0? app: nextApp;
+            for (ParseObject app : objects) {
+                if (app.get("patient").equals(ParseUser.getCurrentUser().getObjectId()) && (((String) app.get("date")).compareTo(getCurrentDateString())) >= 0) {
+                    if (state==null || app.getString(MainActivity.APP_STATE_KEY).equals(state)){
+                        if (nextApp == null)
+                            nextApp = app;
+                        else {
+                            nextApp = (getTimeCompareString(app).compareTo(getTimeCompareString(nextApp))) < 0 ? app : nextApp;
+                        }
                     }
                 }
             }
@@ -56,7 +61,7 @@ public class ImPatientUtil {
         ParseQuery<ParseObject> query = ParseQuery.getQuery(ImPatientObject.appointment_name);
         query.findInBackground(new FindCallback<ParseObject>() {
             public void done(List<ParseObject> objects, ParseException e) {
-                final ParseObject nextApp = ImPatientUtil.getNextAppointment(objects, e);
+                final ParseObject nextApp = ImPatientUtil.getNextAppointment(objects, e, null);
                 if(nextApp==null) {
                     //No Appointment is found
                     view.setText("No Appointment Found");
@@ -67,6 +72,21 @@ public class ImPatientUtil {
         });
     }
 
+
+    public static void displayNextAppointment(final TextView view, final String state){
+        ParseQuery<ParseObject> query = ParseQuery.getQuery(ImPatientObject.appointment_name);
+        query.findInBackground(new FindCallback<ParseObject>() {
+            public void done(List<ParseObject> objects, ParseException e) {
+                final ParseObject nextApp = ImPatientUtil.getNextAppointment(objects, e, state);
+                if(nextApp==null) {
+                    //No Appointment is found
+                    view.setText("No Appointment Found");
+                }else{
+                    view.setText("Next Appointment:\n" + getTimeString(nextApp));
+                }
+            }
+        });
+    }
     public static void makeToast(Context context, String messge, int duration){
         Toast toast = Toast.makeText(context, messge, duration);
         toast.show();

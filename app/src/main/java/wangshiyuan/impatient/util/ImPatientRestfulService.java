@@ -1,5 +1,6 @@
 package wangshiyuan.impatient.util;
 
+import java.util.List;
 import java.util.Map;
 
 import retrofit.Call;
@@ -7,6 +8,7 @@ import retrofit.http.Body;
 import retrofit.http.GET;
 import retrofit.http.POST;
 import retrofit.http.Path;
+import wangshiyuan.impatient.object.CheckIn;
 import wangshiyuan.impatient.object.ImPatientResponse;
 
 /**
@@ -29,5 +31,13 @@ public interface ImPatientRestfulService {
     @GET("patient/cancelAppointment/{id}")
     Boolean cancelAppointment(@Path("id") String userId);
 
+    @GET("admin/getcheckins")
+    Call<List<CheckIn>> getAllCheckIns();
+
+    @POST("admin/deletecheckins/{id}")
+    Call<List<CheckIn>> deleteCheckin(@Path("id") String checkInID);
+
+    @POST("admin/adjustorder/{id}/{direction}")
+    Call<ImPatientResponse> adjustOrder(@Path("id") String checkInID, @Path("direction") String direction);
 
 }

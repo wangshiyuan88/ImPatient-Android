@@ -29,5 +29,7 @@
     <string name="schedule_appointment_success_title">Appointment Confirmed</string>
     <string name="schedule_appointment_fail_title">Schedule Appointment Failed</string>
     <string name="test_url">http://10.0.2.2:8080/impatient/</string>
-
+    <string name="logout">Logout</string>
+    <string name="confirm_delete_checkin">Confirm Delete</string>
+    <string name="fail_to_delete_checkin">You cannot cancel this appointment since this patient is already in treatment.</string>
 </resources>

@@ -99,6 +99,7 @@ public class PatientCheckInFragment extends Fragment {
                     parentActivity.quitCheckIn();
                 }else{
                     uploadCheckInFrom();
+                    parentActivity.setStatus(MainActivity.PatientStatus.CHECK_IN);
                 }
             }
         });

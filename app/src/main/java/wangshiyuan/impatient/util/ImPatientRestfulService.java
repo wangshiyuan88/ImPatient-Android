@@ -14,6 +14,8 @@ import wangshiyuan.impatient.object.ImPatientResponse;
 /**
  * Created by wangshiyuan on 10/20/15.
  */
+
+
 public interface ImPatientRestfulService {
 
     @POST("patient/checkin")

@@ -37,13 +37,8 @@ public class TimeCheckService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         ResultReceiver receiver = intent.getParcelableExtra(MainActivity.KEY_RESULT_RECEIVER);
-        String statusString = intent.getStringExtra(MainActivity.KEY_STATUS);
+        //String statusString = intent.getStringExtra(MainActivity.KEY_STATUS);
         handleAppointmentStatus(receiver);
-        if(statusString.equals(MainActivity.PatientStatus.CHECK_IN.toString())){
-            getWaitngStatus(receiver);
-        }else if(statusString.equals(MainActivity.PatientStatus.IN_TREATMENT.toString())){
-            getTreatmentStatus(receiver);
-        }
     }
 
     private void handleAppointmentStatus(final ResultReceiver receiver) {
